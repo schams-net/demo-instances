@@ -1,0 +1,80 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          system-updates
+# Required-Start:    apache2 mysql
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Download and install system updates
+# Description:
+### END INIT INFO
+
+CURRENTSCRIPT="$0"
+
+# ------------------------------------------------------------------------------
+
+# Function to log the output of this script
+function output {
+	DATETIME=$(date +"%c")
+	echo "[${DATETIME}] $1" >> /opt/t3whatsnew/logs/system-updates.log
+}
+
+# Function that is called when the script exits:
+function selfdestruct {
+	output "Removing script \"${CURRENTSCRIPT}\" from boot sequence"
+	update-rc.d system-updates remove
+	if [ $? -eq 0 ]; then
+		output "Securely shredding script \"${CURRENTSCRIPT}\""
+		shred --remove "${CURRENTSCRIPT}"
+		if [ $? -ne 0 ]; then
+			output "Ooops, something went wrong - script NOT deleted"
+			exit 1
+		fi
+	else
+		output "Ooops, something went wrong - script NOT removed from boot sequence"
+		exit 1
+	fi
+	exit 0
+}
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+output "Executing script \"$0\""
+
+#	if [ $? -eq 0 ]; then
+#		trap selfdestruct EXIT
+#	else
+#		output "Ooops, something went wrong - script NOT removed from boot sequence"
+#		exit 1
+#	fi
+
+case "$1" in
+	start|"")
+		# Force non-interactive system updates
+		export DEBIAN_FRONTEND=noninteractive
+		export DEBIAN_PRIORITY=critical
+
+		output "Updating local Debian repositories"
+		apt-get --quiet --yes update
+		if [ $? -ne 0 ]; then output "Update failed" ; fi
+
+		output "Installing system updates"
+		apt-get --quiet --yes --option "Dpkg::Options::=--force-confdef" --option "Dpkg::Options::=--force-confold" upgrade
+		if [ $? -ne 0 ]; then output "Download/installation failed" ; fi
+
+		output "Clearing out the local repository of retrieved package files"
+		apt-get --quiet --yes autoclean
+		if [ $? -ne 0 ]; then output "Auto-cleaning failed" ; fi
+
+		trap selfdestruct EXIT
+		;;
+	stop)
+		output "Ignoring script \"${CURRENTSCRIPT}\" at this runlevel"
+		;;
+	*)
+		output "Usage: ${CURRENTSCRIPT} [start|stop]" >&2
+		exit 3
+		;;
+esac
+
+:

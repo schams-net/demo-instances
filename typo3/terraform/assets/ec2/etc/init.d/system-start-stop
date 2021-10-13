@@ -1,0 +1,97 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          system-start-stop
+# Required-Start:    apache2 ssh
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Notification about system (re-)start
+# Description:
+### END INIT INFO
+
+CURRENTSCRIPT="$0"
+
+HOSTNAME_SHORT=$(hostname --short)
+HOSTNAME_LONG=$(hostname --long)
+
+SLACK_WEBHOOKS_FILE="/etc/slack/webhooks.cfg"
+SLACK_CHANNEL="infrastructure"
+SLACK_URL=""
+
+convertsecs(){
+    ((d=${1}/86400))
+    ((h=(${1}%86400)/3600))
+    ((m=(${1}%3600)/60))
+    ((s=${1}%60))
+    TIME_ELAPSED=$(printf "%01d days %02d hrs %02d mins %02d secs" $d $h $m $s)
+}
+
+# Determine Slack webhook URL
+if [ -r "${SLACK_WEBHOOKS_FILE}" -a ! "${SLACK_CHANNEL}" = "" ]; then
+    SLACK_URL=$(cat "${SLACK_WEBHOOKS_FILE}" | egrep -v '^#' | egrep -w "^url\.channel\.${SLACK_CHANNEL}" | head -1 | sed 's/^[^=]*=[[:space:]]*\(.*\)$/\1/')
+fi
+
+# ------------------------------------------------------------------------------
+
+# Function to log the output of this script
+function output {
+    DATETIME=$(date +"%c")
+    echo "[${DATETIME}] $1"
+}
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+[ -f /etc/default/system-start-stop ] && . /etc/default/system-start-stop
+
+output "Executing script \"$0\""
+
+case "$1" in
+    start|"")
+        SLACK_MESSAGE="[*${HOSTNAME_SHORT}*] System launch detected."
+
+        LSB_RELEASE=$(lsb_release --short --description)
+        if [ ! "${LSB_RELEASE}" = "" ]; then
+            SLACK_MESSAGE="${SLACK_MESSAGE} ${LSB_RELEASE}."
+        fi
+
+        KERNEL_RELEASE=$(uname -r)
+        KERNEL_VERSION=$(dpkg -s linux-image-${KERNEL_RELEASE} | grep -i version)
+        if [ ! "${KERNEL_VERSION}" = "" ]; then
+            SLACK_MESSAGE="${SLACK_MESSAGE} Kernel ${KERNEL_VERSION}."
+        fi
+
+        EC2METADATA=$(which ec2metadata)
+        if [ ! "${EC2METADATA}" = "" ]; then
+            METADATA=$(${EC2METADATA} --instance-id --instance-type --local-ipv4 --public-ipv4 --availability-zone | sed ':a;N;$!ba;s/\n/ /g')
+            METADATA=$(echo "${METADATA}" | sed 's/^\([^ ]*\) \([^ ]*\) \([^ ]*\) \([^ ]*\) \(.*\)$/Instance ID: *\1*, type: *\2*, internal IPv4: *\3*, public IPv4: *\4*, zone: *\5*/g')
+            SLACK_MESSAGE="${SLACK_MESSAGE}\n${METADATA}"
+        fi
+
+        if [ ! "${SLACK_URL}" = "" ]; then
+            if [ ! "${SLACK_MESSAGE}" = "" ]; then
+                curl --silent --fail --request POST --header 'Content-type: application/json' --data "{\"text\":\"${SLACK_MESSAGE}\"}" ${SLACK_URL} > /dev/null
+            fi
+        fi
+        ;;
+    stop)
+        SLACK_MESSAGE="[*${HOSTNAME_SHORT}*] System shutting down."
+
+        CALCULATOR=$(which bc)
+        if [ ! "${CALCULATOR}" = "" ]; then
+            UPTIME=$(echo "($(date +"%s") - $(date +"%s" -d "$(uptime -s)"))" | ${CALCULATOR})
+            convertsecs ${UPTIME}
+            SLACK_MESSAGE="${SLACK_MESSAGE} Uptime: ${TIME_ELAPSED}"
+        fi
+
+        if [ ! "${SLACK_URL}" = "" ]; then
+            if [ ! "${SLACK_MESSAGE}" = "" ]; then
+                curl --silent --fail --request POST --header 'Content-type: application/json' --data "{\"text\":\"${SLACK_MESSAGE}\"}" ${SLACK_URL} > /dev/null
+            fi
+        fi
+        ;;
+    *)
+        output "Usage: system-start-stop [start|stop]" >&2
+        exit 3
+        ;;
+esac
+
+:

@@ -1,0 +1,7 @@
+module "production" {
+    source = "./environments/eu-central-1"
+
+    volume_size = var.volume_size
+    tag_name = var.tag_name
+    tag_billing_id = var.tag_billing_id
+}

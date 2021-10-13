@@ -1,0 +1,96 @@
+diff --git a/src/extensions/site_t3demo/Configuration/TypoScript/constants.typoscript b/src/extensions/site_t3demo/Configuration/TypoScript/constants.typoscript
+index 3378458..288d2e3 100644
+--- a/src/extensions/site_t3demo/Configuration/TypoScript/constants.typoscript
++++ b/src/extensions/site_t3demo/Configuration/TypoScript/constants.typoscript
+@@ -19,9 +19,3 @@ styles.templates {
+   layoutRootPath = EXT:site_t3demo/Resources/Private/Contenttypes/Layouts
+   partialRootPath = EXT:site_t3demo/Resources/Private/Contenttypes/Partials
+ }
+-
+-umami-website-id = 4787f97e-d6be-428f-9710-dc374a6c1570
+-
+-[applicationContext == "Production"]
+-  umami-website-id = 5092964f-4f3e-4bbc-9717-26b4bfb68ca4
+-[end]
+diff --git a/src/extensions/site_t3demo/Configuration/TypoScript/setup.typoscript b/src/extensions/site_t3demo/Configuration/TypoScript/setup.typoscript
+index 78cf5c9..0659eba 100644
+--- a/src/extensions/site_t3demo/Configuration/TypoScript/setup.typoscript
++++ b/src/extensions/site_t3demo/Configuration/TypoScript/setup.typoscript
+@@ -20,12 +20,6 @@ page {
+ 
+   includeCSS.main = EXT:site_t3demo/Resources/Public/Css/main.css
+ 
+-  footerData.10 = TEXT
+-  footerData.10.value (
+-    <script src="https://typo3.azureedge.net/typo3infrastructure/universe/dist/webcomponents-loader.js" async></script>
+-    <script type="module" src="https://typo3.azureedge.net/typo3infrastructure/universe/dist/typo3-universe.js" async></script>
+-  )
+-
+   includeJSFooter.main = EXT:site_t3demo/Resources/Public/JavaScript/main.js
+   includeJSFooter.main.type = module
+ 
+@@ -34,7 +28,6 @@ page {
+     templateName = HeaderData
+     templateRootPaths.0 = EXT:site_t3demo/Resources/Private/Pages/HeaderData/Templates
+     partialRootPaths.0 = EXT:site_t3demo/Resources/Private/Pages/HeaderData/Partials
+-    settings.umami-website-id = {$umami-website-id}
+ 
+     variables {
+       pagelayout = TEXT
+diff --git a/src/extensions/site_t3demo/Resources/Private/Pages/HeaderData/Templates/HeaderData.html b/src/extensions/site_t3demo/Resources/Private/Pages/HeaderData/Templates/HeaderData.html
+index c245383..00d4ba3 100644
+--- a/src/extensions/site_t3demo/Resources/Private/Pages/HeaderData/Templates/HeaderData.html
++++ b/src/extensions/site_t3demo/Resources/Private/Pages/HeaderData/Templates/HeaderData.html
+@@ -10,8 +10,6 @@
+ <link rel="preload" as="font" crossorigin="" type="font/woff" href="/typo3conf/ext/site_t3demo/Resources/Public/Fonts/Lato/Lato-Light.woff2">
+ <link rel="preload" as="font" crossorigin="" type="font/woff" href="/typo3conf/ext/site_t3demo/Resources/Public/Fonts/Lato/Lato-Regular.woff2">
+ 
+-<script async defer data-website-id="{settings.umami-website-id}" src="https://umami.b13.live/script.js"></script>
+-
+ <f:comment>
+ 	<!-- add structured data for different backendLayouts -->
+ </f:comment>
+diff --git a/src/extensions/site_t3demo/Resources/Private/Pages/Partials/Header.html b/src/extensions/site_t3demo/Resources/Private/Pages/Partials/Header.html
+index 3371c8a..5a35a5f 100644
+--- a/src/extensions/site_t3demo/Resources/Private/Pages/Partials/Header.html
++++ b/src/extensions/site_t3demo/Resources/Private/Pages/Partials/Header.html
+@@ -4,14 +4,6 @@
+ 	data-namespace-typo3-fluid="true"
+ >
+ 
+-<div class="b_typo3universe">
+-	<div class="b_typo3universe__contentcontainer">
+-		<typo3-universe active="demo">
+-			<div style="display: block; height: 44px; background-color: #fff;"></div>
+-		</typo3-universe>
+-	</div>
+-</div>
+-
+ <header class="b_header">
+ 	<div class="b_header__contentcontainer">
+ 
+diff --git a/src/extensions/site_t3demo/ext_localconf.php b/src/extensions/site_t3demo/ext_localconf.php
+index f5a355a..e7444f6 100644
+--- a/src/extensions/site_t3demo/ext_localconf.php
++++ b/src/extensions/site_t3demo/ext_localconf.php
+@@ -62,20 +62,6 @@ defined('TYPO3_MODE') or die();
+         ]
+     );
+ 
+-    if ((string)\TYPO3\CMS\Core\Core\Environment::getContext() === 'Production') {
+-        $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_userauthgroup.php']['backendUserLogin'][] =
+-            \B13\SiteT3demo\Hooks\StartSyncTimerHook::class . '->dispatch';
+-
+-        $GLOBALS['TYPO3_CONF_VARS']['BE']['toolbarItems'][1602858625] = \B13\SiteT3demo\Backend\ToolbarItems\TimerToolbarItem::class;
+-        $iconRegistry->registerIcon(
+-            'b13-demo-content-sync-timer',
+-            \TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider::class,
+-            [
+-                'source' => 'EXT:site_t3demo/Resources/Public/Icons/clock.svg'
+-            ]
+-        );
+-    }
+-
+     // Remove the doktypes we do not use
+     \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addUserTSConfig('options.pageTree.doktypesToShowInNewPageDragArea := removeFromList(7,255,199)');
+ })();

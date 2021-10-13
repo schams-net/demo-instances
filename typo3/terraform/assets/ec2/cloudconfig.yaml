@@ -1,0 +1,82 @@
+#cloud-config
+
+# Update apt database on first boot
+package_update: true
+
+# Upgrade the instance on first boot
+package_upgrade: true
+
+# Install additional packages on first boot
+packages:
+ - apache2
+ - apache2-suexec-custom
+ - apt-listchanges
+ - apt-transport-https
+ - bc
+ - bzip2
+ - ca-certificates
+ - clamav
+ - curl
+ - fdisk
+ - git
+ - gnupg
+ - htop
+ - imagemagick
+ - jq
+ - less
+ - libapache2-mod-fcgid
+ - libapache2-mod-php
+ - lsb-release
+ - lsof
+ - mailutils
+ - mariadb-server
+ - mcrypt
+ - nvme-cli
+ - parted
+ - patch
+ - php
+ - php-apcu
+ - php-bcmath
+ - php-cgi
+ - php-curl
+ - php-gd
+ - php-intl
+ - php-mbstring
+ - php-mysql
+ - php-soap
+ - php-sqlite3
+ - php-xml
+ - php-zip
+ - postfix
+ - python3-pip
+ - rsync
+ - screen
+ - sqlite3
+ - unattended-upgrades
+ - unzip
+ - uuid-runtime
+ - vim
+ - zip
+ - arj
+ - bzip2
+ - cabextract
+ - cpio
+ - file
+ - gzip
+ - lhasa
+ - nomarch
+ - pax
+ - unrar-free
+ - unzip
+ - p7zip
+
+# Set up swap space
+swap:
+  filename: /var/swap.img
+  size: "auto"
+
+# Run commands on first boot
+runcmd:
+ - echo "export IDENTIFIER=foobar" >> /tmp/.env
+ - if [ -r /tmp/assets.zip ]; then unzip -q -d /tmp/assets/ /tmp/assets.zip ; find /tmp/assets/ -name "*.sh" -type f -exec chmod 744 {} \; ; fi
+ - if [ -x /tmp/assets/setup.sh ]; then /tmp/assets/setup.sh ; fi
